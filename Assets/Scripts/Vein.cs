@@ -1,18 +1,24 @@
 using UnityEngine;
+//using UnityEngine.Collider;
 
 public class Vein : MonoBehaviour
 {
-    [SerializeField] private Transform _position;
-    private GameObject _orePrefab;
-    private string _oreName;
-    private int _countOre;
+    [SerializeField] private string _oreName;
+    [SerializeField] private GameObject _orePrefab;
+    [SerializeField] private int _oreCount = 100;
+    private bool _isWaiting = true;
 
-    public void Init(GameObject orePrefab, string oreName, int countOre)
+    public Vector3 Position => transform.position;
+    public string Name => _oreName;
+    public bool HasOre => _oreCount > 0;
+
+    public GameObject GetOre(int count)
     {
-        _orePrefab = orePrefab;
-        _oreName = oreName;
-        _countOre = countOre;
-    }
+        _oreCount -= count;
+        GameObject ore = Instantiate(_orePrefab, transform.position, Quaternion.identity);
+        Ore oreScript = ore.GetComponent<Ore>();
+        oreScript.Init(count, _oreName);
 
-    
+        return ore;
+    }
 }

@@ -13,6 +13,11 @@ public class RobotSpawner : MonoBehaviour
 
     private void Start()
     {
+        Spawn();
+    }
+
+    private void Spawn()
+    {
         for (int i = 0; i < _robotCount; i++)
         {
             Vector3 position = GetRandomRingPosition();
