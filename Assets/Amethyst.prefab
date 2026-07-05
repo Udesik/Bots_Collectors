@@ -71,8 +71,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aee63fb9ef4a42bfa8aee5558d42accf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Vein
-  _oreName: Amethyst
-  _orePrefab: {fileID: 3592782198702883773, guid: 63782045580b85e159c44e831be137b3, type: 3}
+  _orePrefab: {fileID: 2745351498808447430, guid: 0ab3a696fb13b5324b0ca09b0391d534, type: 3}
   _oreCount: 100
 --- !u!208 &-4921680122168002985
 NavMeshObstacle:

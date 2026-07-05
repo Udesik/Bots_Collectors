@@ -1,7 +1,6 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(RobotSpawner), typeof(VeinSpawner))]
 public class Base : MonoBehaviour
@@ -10,19 +9,23 @@ public class Base : MonoBehaviour
     private VeinSpawner _veinSpawner;
     private List<Robot> _robots;
     private List<Vein> _veins;
-    private int _radiuseReturn = 4;
+    private int _radiuseReturn = 5;
 
-    private int[] _oreCounts = {0, 0, 0, 0};
-
+    private Dictionary<ResourceType, int> _oreCounts = new Dictionary<ResourceType, int>();
     private int _maxOreCount = 30;
     private HashSet<Vein> _targetedVeins = new HashSet<Vein>();
 
-    public event Action<int[], int> ResourceReceived;
+    public event Action<Dictionary<ResourceType, int>, int> ResourceReceived;
 
     private void Awake()
     {
         _robots = new List<Robot>();
         _veins = new List<Vein>();
+
+        foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
+        {
+            _oreCounts[type] = 0;
+        }
 
         _robotSpawner = GetComponent<RobotSpawner>();
         _veinSpawner = GetComponent<VeinSpawner>();
@@ -30,14 +33,14 @@ public class Base : MonoBehaviour
 
     private void OnEnable()
     {
-        _robotSpawner.RobotSpawned += AddRobot;
-        _veinSpawner.VeinSpawned += AddVein;
+        _robotSpawner.Spawned += AddRobot;
+        _veinSpawner.Spawned += AddVein;
     }
 
     private void OnDisable()
     {
-        _robotSpawner.RobotSpawned -= AddRobot;
-        _veinSpawner.VeinSpawned -= AddVein;
+        _robotSpawner.Spawned -= AddRobot;
+        _veinSpawner.Spawned -= AddVein;
     }
 
     private void Update()
@@ -50,28 +53,28 @@ public class Base : MonoBehaviour
         if (_veins.Count == 0 || _robots.Count == 0) return;
 
         List<Robot> waitingRobots = GetWaitingRobots();
+
         if (waitingRobots.Count == 0) return;
 
         foreach (Robot robot in waitingRobots)
         {
-            int missingOreIndex = GetMostNeededOreIndex();
+            if (!robot.IsWaiting) continue;
 
-            if (missingOreIndex == -1) break;
+            ResourceType? mostNeededOre = GetMostNeededOre();
 
-            string targetedOreName = GetOreNameByIndex(missingOreIndex);
+            if (mostNeededOre == null) break;
 
-            Vein targetVein = FindFreeVeinByName(targetedOreName);
+            Vein targetVein = FindFreeVeinByType(mostNeededOre.Value);
 
             if (targetVein == null)
             {
                 targetVein = FindAnyAvailableVein();
             }
 
-            if (targetVein != null)
-            {
-                _targetedVeins.Add(targetVein);
-                robot.TakeTarget(targetVein, GetRandomCirclePosition(_radiuseReturn), this);
-            }
+            if (targetVein == null) break;
+
+            _targetedVeins.Add(targetVein);
+            robot.TakeTarget(targetVein, GetRandomCirclePosition(_radiuseReturn), this);
         }
     }
 
@@ -86,37 +89,37 @@ public class Base : MonoBehaviour
                 waiting.Add(robot);
             }
         }
+
         return waiting;
     }
 
-    private int GetMostNeededOreIndex()
+    private ResourceType? GetMostNeededOre()
     {
-        int bestIndex = -1;
+        ResourceType? bestType = null;
         int lowestCount = int.MaxValue;
 
-        for (int i = 0; i < _oreCounts.Length; i++)
+        foreach (var pair in _oreCounts)
         {
-            if (_oreCounts[i] < _maxOreCount)
+            if (pair.Value < _maxOreCount && pair.Value < lowestCount)
             {
-                if (_oreCounts[i] < lowestCount)
-                {
-                    lowestCount = _oreCounts[i];
-                    bestIndex = i;
-                }
+                lowestCount = pair.Value;
+                bestType = pair.Key;
             }
         }
-        return bestIndex;
+
+        return bestType;
     }
 
-    private Vein FindFreeVeinByName(string oreName)
+    private Vein FindFreeVeinByType(ResourceType type)
     {
         foreach (Vein vein in _veins)
         {
-            if (vein != null && vein.Name == oreName && vein.HasOre && !_targetedVeins.Contains(vein))
+            if (vein != null && vein.Type == type && vein.HasOre && !_targetedVeins.Contains(vein))
             {
                 return vein;
             }
         }
+
         return null;
     }
 
@@ -126,37 +129,13 @@ public class Base : MonoBehaviour
         {
             if (vein == null || !vein.HasOre || _targetedVeins.Contains(vein)) continue;
 
-            int index = GetOreIndexByName(vein.Name);
-            if (index != -1 && _oreCounts[index] < _maxOreCount)
+            if (_oreCounts.TryGetValue(vein.Type, out int count) && count < _maxOreCount)
             {
                 return vein;
             }
         }
+
         return null;
-    }
-
-    private string GetOreNameByIndex(int index)
-    {
-        switch (index)
-        {
-            case 0: return "Gold";
-            case 1: return "Amethyst";
-            case 2: return "Lazurit";
-            case 3: return "Ruby";
-            default: return "";
-        }
-    }
-
-    private int GetOreIndexByName(string oreName)
-    {
-        switch (oreName)
-        {
-            case "Gold": return 0;
-            case "Amethyst": return 1;
-            case "Lazurit": return 2;
-            case "Ruby": return 3;
-            default: return -1;
-        }
     }
 
     private void AddRobot(Robot robot)
@@ -182,26 +161,21 @@ public class Base : MonoBehaviour
 
     public void ReceiveOre(Ore ore)
     {
-        int index = GetOreIndexByName(ore.GetOreName());
-        
-        if (index != -1)
-        {
-            _oreCounts[index] = Mathf.Min(_oreCounts[index] + ore.GetOre(), _maxOreCount);
-            Debug.Log($"[База] Доставлен ресурс {ore.GetOreName()}. На складе: {_oreCounts[index]}/{_maxOreCount}");
-            ResourceReceived?.Invoke(_oreCounts, _maxOreCount);
-        }
+        if (ore == null) return;
 
+        ResourceType type = ore.ResourceType;
+        _oreCounts[type] = Mathf.Min(_oreCounts[type] + ore.GetOreCount(), _maxOreCount);
+        
+        ResourceReceived?.Invoke(_oreCounts, _maxOreCount);
         Destroy(ore.gameObject);
     }
 
     private Vector3 GetRandomCirclePosition(float radius)
     {
         float theta = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
-
         float x = radius * Mathf.Cos(theta);
         float z = radius * Mathf.Sin(theta);
 
         return transform.position + new Vector3(x, 0f, z);
     }
-
 }

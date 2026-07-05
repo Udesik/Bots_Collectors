@@ -8,9 +8,8 @@ public class Robot : MonoBehaviour
     private Vein _target;
     private Vector3 _basePosition;
     private Base _base;
-    private Camera _camera;
     private NavMeshAgent _agent;
-    private GameObject _ore;
+    private Ore _ore;
 
     private bool _isWaiting = true;
     private bool _hasOre = false;
@@ -19,7 +18,6 @@ public class Robot : MonoBehaviour
 
     private void Awake()
     {
-        _camera = Camera.main;
         _agent = GetComponent<NavMeshAgent>();
     }
 
@@ -39,7 +37,7 @@ public class Robot : MonoBehaviour
     {
         if (_isWaiting) return;
 
-        if (!_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance)
+        if (!_agent.pathPending && _agent.hasPath && _agent.remainingDistance <= _agent.stoppingDistance)
         {
             if (!_hasOre)
             {
@@ -57,8 +55,11 @@ public class Robot : MonoBehaviour
         if (_target != null && _target.HasOre)
         {
             _ore = _target.GetOre(_countGetOre);
-            _ore.transform.SetParent(transform);
-            _ore.transform.position = _positionOre.position;
+            
+            if (_ore != null)
+            {
+                _ore.SetParentToOre(transform, _positionOre.position);
+            }
 
             _hasOre = true;
             _agent.avoidancePriority = 10;
@@ -68,6 +69,7 @@ public class Robot : MonoBehaviour
         else
         {
             if (_target != null) _base.RemoveVein(_target);
+            
             ResetToWaiting();
         }
     }
@@ -76,7 +78,7 @@ public class Robot : MonoBehaviour
     {
         if (_ore != null)
         {
-            _base.ReceiveOre(_ore.GetComponent<Ore>());
+            _base.ReceiveOre(_ore);
             _ore = null;
         }
 

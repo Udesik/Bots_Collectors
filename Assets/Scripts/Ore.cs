@@ -1,47 +1,26 @@
 using UnityEngine;
 
+[RequireComponent(typeof(MeshRenderer))]
 public class Ore : MonoBehaviour
 {
-    [SerializeField] private GameObject _orePrefab;
-    [SerializeField] private Color _colorGold;
-    [SerializeField] private Color _colorAmethyst;
-    [SerializeField] private Color _colorLazurit;
-    [SerializeField] private Color _colorRuby;
-
+    [SerializeField] private ResourceType _resourceType;
     private int _oreCount;
-    private string _oreName;
 
-    public void Init(int oreCount, string oreName)
+    public ResourceType ResourceType => _resourceType;
+
+    public void Init(int oreCount)
     {
         _oreCount = oreCount;
-        _oreName = oreName;
-
-        if (oreName == "Gold")
+        
+        if (TryGetComponent<MeshRenderer>(out MeshRenderer meshRenderer))
         {
-            GetComponent<MeshRenderer>().material.color = _colorGold;
-        }
-        else if (oreName == "Amethyst")
-        {
-            GetComponent<MeshRenderer>().material.color = _colorAmethyst;
-        }
-        else if (oreName == "Lazurit")
-        {
-            GetComponent<MeshRenderer>().material.color = _colorLazurit;
-        }
-        else
-        {
-            GetComponent<MeshRenderer>().material.color = _colorRuby;
+            meshRenderer.material.color = ResourceConfig.GetColor(_resourceType);
         }
     }
 
-    public int GetOre()
+    public int GetOreCount()
     {
         return _oreCount;
-    }
-
-    public string GetOreName()
-    {
-        return _oreName;
     }
 
     public void SetParentToOre(Transform parent, Vector3 position)

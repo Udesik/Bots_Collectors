@@ -48,8 +48,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aee63fb9ef4a42bfa8aee5558d42accf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Vein
-  _oreName: Lazurit
-  _orePrefab: {fileID: 3592782198702883773, guid: 63782045580b85e159c44e831be137b3, type: 3}
+  _orePrefab: {fileID: 2415865150482028780, guid: b163308f00a4961d5bb16cf1198150b6, type: 3}
   _oreCount: 100
 --- !u!136 &2385767085425821732
 CapsuleCollider:

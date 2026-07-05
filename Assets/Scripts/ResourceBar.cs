@@ -2,21 +2,17 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
-using System;
 
 public class ResourceBar : MonoBehaviour
 {
     [SerializeField] private Base _base;
     [SerializeField] private List<Slider> _sliders;
-
     [SerializeField] private float _speed = 2f;
     
-    // ИСПРАВЛЕНО: Массив корутин под каждый слайдер, чтобы они не сбрасывали друг друга в цикле
     private Coroutine[] _updateCoroutines;
 
     private void Awake()
     {
-        // Создаем массив корутин по количеству слайдеров
         _updateCoroutines = new Coroutine[_sliders.Count];
     }
 
@@ -30,23 +26,25 @@ public class ResourceBar : MonoBehaviour
         _base.ResourceReceived -= OnResourceReceived;
     }
 
-    private void OnResourceReceived(int[] resources, int max)
+    private void OnResourceReceived(Dictionary<ResourceType, int> resources, int max)
     {
-        for (int i = 0; i < _sliders.Count; i++)
+        int index = 0;
+        foreach (var pair in resources)
         {
-            // Проверка, чтобы не выйти за пределы пришедшего массива ресурсов
-            if (i >= resources.Length) break;
-            if (_sliders[i] == null) continue;
+            if (index >= _sliders.Count) break;
+            if (_sliders[index] == null) 
+            {
+                index++;
+                continue;
+            }
 
-            // ИСПРАВЛЕНО: Приведение к (float). Теперь деление целых чисел выдает дробное значение (например, 0.5f вместо 0)
-            float target = (float)resources[i] / max;
+            float target = (float)pair.Value / max;
         
-            // ИСПРАВЛЕНО: Останавливаем корутину именно для текущего слайдера по индексу i
-            if (_updateCoroutines[i] != null) 
-                StopCoroutine(_updateCoroutines[i]);
+            if (_updateCoroutines[index] != null) 
+                StopCoroutine(_updateCoroutines[index]);
         
-            // Запускаем корутину в её личную ячейку массива
-            _updateCoroutines[i] = StartCoroutine(SmoothUpdate(target, i));
+            _updateCoroutines[index] = StartCoroutine(SmoothUpdate(target, index));
+            index++;
         }
     }
 
